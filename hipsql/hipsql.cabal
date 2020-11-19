@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 64f94ac0c304e9cb3419a01be81d1b9746bab500d9f2dddfc8d4840a22566584
+-- hash: f7ca98cb9bf216f94ee10a4bb26035b9fb1e7d999b249c9be8994562f0441cab
 
 name:           hipsql
 version:        0.0.0.0
@@ -32,6 +32,7 @@ library
       Paths_hipsql
   hs-source-dirs:
       library
+  ghc-options: -Wall
   build-depends:
       base >=4.7 && <5
     , bytestring >=0.10.10.0 && <0.11
@@ -48,7 +49,7 @@ executable hipsql
       Paths_hipsql
   hs-source-dirs:
       exe
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , bytestring >=0.10.10.0 && <0.11
@@ -67,7 +68,7 @@ test-suite hipsql-test
       Paths_hipsql
   hs-source-dirs:
       test-suite
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , bytestring >=0.10.10.0 && <0.11

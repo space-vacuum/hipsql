@@ -1,13 +1,15 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Control.Monad.Reader (runReaderT)
-import Hipsql.Internal (mkPsqlEnv, psql)
-import System.Console.Haskeline (defaultSettings, runInputT)
+import Hipsql (startPsqlWith)
+import qualified Control.Exception as Exception
 import qualified Database.PostgreSQL.LibPQ as LibPQ
 
+-- | Use env vars as described here:
+-- https://www.postgresql.org/docs/13/libpq-envars.html
+--
+-- e.g. @PGDATABASE=mydb hipsql@
 main :: IO ()
-main = do
-  conn <- LibPQ.connectdb ""
-  psqlEnv <- mkPsqlEnv conn
-  flip runReaderT psqlEnv $ runInputT defaultSettings psql
+main = startPsqlWith withConn
+  where
+  withConn :: (LibPQ.Connection -> IO ()) -> IO ()
+  withConn f = Exception.bracket (LibPQ.connectdb mempty) f LibPQ.finish

@@ -3,11 +3,16 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Hipsql.Internal where
+module Hipsql.Internal
+  ( -- * Disclaimer
+    -- $disclaimer
+
+    -- ** Internals
+    module Hipsql.Internal
+  ) where
 
 import Control.Exception (Exception(displayException, fromException), SomeException, throwIO)
 import Control.Monad (mfilter)
-import Control.Monad.Catch (try)
 import Control.Monad.IO.Class (MonadIO(liftIO))
 import Control.Monad.Reader (ReaderT(runReaderT), asks)
 import Control.Monad.Trans.Class (MonadTrans(lift))
@@ -22,6 +27,14 @@ import System.Console.Haskeline (InputT, defaultSettings, getInputLine, outputSt
 import System.Console.Haskeline.MonadException (catch)
 import qualified Data.ByteString.Char8 as Char8
 import qualified Database.PostgreSQL.LibPQ as LibPQ
+
+startPsql :: LibPQ.Connection -> IO ()
+startPsql conn = do
+  psqlEnv <- mkPsqlEnv conn
+  flip runReaderT psqlEnv $ runInputT defaultSettings psql
+
+startPsqlWith :: ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
+startPsqlWith = ($ startPsql)
 
 type PsqlM = InputT (ReaderT PsqlEnv IO)
 
@@ -206,3 +219,8 @@ mkQueryResponse result = do
     { columnNames
     , resultRows
     }
+
+-- $disclaimer
+--
+-- Changes to this module will not be reflected in the library's version
+-- updates.
