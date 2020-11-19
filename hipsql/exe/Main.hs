@@ -12,4 +12,4 @@ main :: IO ()
 main = startPsqlWith withConn
   where
   withConn :: (LibPQ.Connection -> IO ()) -> IO ()
-  withConn f = Exception.bracket (LibPQ.connectdb mempty) f LibPQ.finish
+  withConn = Exception.bracket (LibPQ.connectdb mempty) LibPQ.finish
