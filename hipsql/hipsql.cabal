@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f7ca98cb9bf216f94ee10a4bb26035b9fb1e7d999b249c9be8994562f0441cab
+-- hash: 8cece6a70f443c909dcd5d4e15b5cbe6746d78f17e7639a7cb1ad5b7a1914a89
 
 name:           hipsql
 version:        0.0.0.0
@@ -65,17 +65,21 @@ test-suite hipsql-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Spec.Infra
       Paths_hipsql
   hs-source-dirs:
       test-suite
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      async
+    , base >=4.7 && <5
     , bytestring >=0.10.10.0 && <0.11
     , exceptions >=0.10.4 && <0.11
     , haskeline >=0.7.5.0 && <0.8
     , hipsql
+    , hspec
     , mtl >=2.2.2 && <2.3
     , postgresql-libpq >=0.9.4.2 && <0.10
+    , postgresql-simple
     , transformers >=0.5.6.2 && <0.6
   default-language: Haskell2010

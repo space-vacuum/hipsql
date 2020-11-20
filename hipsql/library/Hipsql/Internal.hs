@@ -11,7 +11,7 @@ module Hipsql.Internal
     module Hipsql.Internal
   ) where
 
-import Control.Exception (Exception(displayException, fromException), SomeException, throwIO)
+import Control.Exception (Exception, throwIO)
 import Control.Monad (mfilter)
 import Control.Monad.IO.Class (MonadIO(liftIO))
 import Control.Monad.Reader (ReaderT(runReaderT), asks)
@@ -24,32 +24,76 @@ import Data.Maybe (fromMaybe, listToMaybe)
 import Data.String (IsString(fromString))
 import Data.Traversable (for)
 import System.Console.Haskeline (InputT, defaultSettings, getInputLine, outputStrLn, runInputT)
-import System.Console.Haskeline.MonadException (catch)
+import qualified Control.Exception as Exception
 import qualified Data.ByteString.Char8 as Char8
 import qualified Database.PostgreSQL.LibPQ as LibPQ
+import qualified System.Console.Haskeline.MonadException as Haskeline
 
 startPsql :: LibPQ.Connection -> IO ()
-startPsql conn = do
-  psqlEnv <- mkPsqlEnv conn
-  flip runReaderT psqlEnv $ runInputT defaultSettings psql
+startPsql = startPsql' defaultPsqlIO
 
 startPsqlWith :: ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
-startPsqlWith = ($ startPsql)
+startPsqlWith = startPsqlWith' defaultPsqlIO
+
+startPsql' :: PsqlIO -> LibPQ.Connection -> IO ()
+startPsql' io conn = do
+  env <- mkPsqlEnv' io conn
+  flip runReaderT env $ runInputT defaultSettings psql
+
+startPsqlWith' :: PsqlIO -> ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
+startPsqlWith' io = ($ startPsql' io)
+
+-- | Uses env vars as described here:
+-- https://www.postgresql.org/docs/13/libpq-envars.html
+withLibPQConnect :: (LibPQ.Connection -> IO ()) -> IO ()
+withLibPQConnect = Exception.bracket (LibPQ.connectdb "") LibPQ.finish
 
 type PsqlM = InputT (ReaderT PsqlEnv IO)
 
 data PsqlEnv = PsqlEnv
   { conn :: LibPQ.Connection
   , state :: IORef PsqlState
+  , io :: PsqlIO
   }
 
+data PsqlIO = PsqlIO
+  { inputStrLn' :: String -> PsqlM (Maybe String)
+  , writeStrLn' :: String -> PsqlM ()
+  , writeBSLn' :: ByteString -> PsqlM ()
+  }
+
+defaultPsqlIO :: PsqlIO
+defaultPsqlIO = PsqlIO
+  { inputStrLn' = getInputLine
+  , writeStrLn' = outputStrLn
+  , writeBSLn' = liftIO . Char8.putStrLn
+  }
+
+inputStrLn :: String -> PsqlM (Maybe String)
+inputStrLn s = do
+  f <- lift $ asks $ inputStrLn' . io
+  f s
+
+writeStrLn :: String -> PsqlM ()
+writeStrLn s = do
+  f <- lift $ asks $ writeStrLn' . io
+  f s
+
+writeBSLn :: ByteString -> PsqlM ()
+writeBSLn s = do
+  f <- lift $ asks $ writeBSLn' . io
+  f s
+
 mkPsqlEnv :: LibPQ.Connection -> IO PsqlEnv
-mkPsqlEnv conn = do
+mkPsqlEnv = mkPsqlEnv' defaultPsqlIO
+
+mkPsqlEnv' :: PsqlIO -> LibPQ.Connection -> IO PsqlEnv
+mkPsqlEnv' io conn = do
   state <- newIORef PsqlState
     { extendedDisplay = False
     , queryBuffer = ""
     }
-  pure PsqlEnv { conn, state }
+  pure PsqlEnv { conn, state, io }
 
 data PsqlState = PsqlState
   { extendedDisplay :: Bool
@@ -88,7 +132,7 @@ psql = loop
   where
   loop = do
     prompt <- getPrompt
-    getInputLine prompt >>= \case
+    inputStrLn prompt >>= \case
       Nothing -> pure ()
       Just q -> runCommand q
 
@@ -97,14 +141,13 @@ psql = loop
     pure $ if null q then "psql> " else "      "
 
   runCommand = \case
-    "exit" -> pure ()
-    "quit" -> pure ()
+    s | s `elem` ["quit", "exit", "\\q"] -> pure ()
     "\\x" -> runToggleExtendedDisplay
     q -> runQuery q
 
   runToggleExtendedDisplay = do
     x <- toggleExtendedDisplay
-    outputStrLn $ "Extended display is " <> (if x then "on" else "off") <> "."
+    writeStrLn $ "Extended display is " <> (if x then "on" else "off") <> "."
     loop
 
   runQuery q0 = do
@@ -113,37 +156,34 @@ psql = loop
       loop
     else do
       clearQueryBuffer
-      let try x = fmap Right x `catch` \e -> pure (Left e)
-      response <- try $ rawQuery $ fromString q
-      res <- renderResponse response
-      liftIO $ Char8.putStrLn res
+      let go = renderResponse =<< rawQuery (fromString q)
+      res <- go `Haskeline.catch` \(QueryException msg) -> pure msg
+      writeBSLn res
       loop
 
-renderResponse :: Either SomeException QueryResponse -> PsqlM ByteString
-renderResponse = \case
-  Left e -> do
-    case fromException e of
-      Just (QueryException msg) -> pure msg
-      Nothing -> pure $ "EXCEPTION: " <> Char8.pack (displayException e) <> "\n"
-  Right QueryResponse { columnNames, resultRows } -> do
-    x <- gets extendedDisplay
-    let rendered =
-          if x then
-            Char8.intercalate "\n" $
-              flip map (zip [(1::Int)..] resultRows) \(i, row) ->
-                "-[ RECORD " <> Char8.pack (show i) <> " ]\n"
-                  <> renderExtended (zip columnNames row)
-          else
-            renderTable
-              (Just (map renderColName columnNames))
-              (map (map renderValue) resultRows)
-    pure $ rendered <> "\n"
+renderResponse :: QueryResponse -> PsqlM ByteString
+renderResponse QueryResponse { columnNames, resultRows } = do
+  x <- gets extendedDisplay
+  let rendered =
+        if x then
+          renderXTable renderedColNames renderedValues
+        else
+          renderTable (Just renderedColNames) renderedValues
+  pure $ rendered <> "\n"
   where
-  renderColName = fromMaybe "?"
-  renderValue = fromMaybe "null"
+  renderedColNames = map (fromMaybe "?") columnNames
+  renderedValues = map (map (fromMaybe "null")) resultRows
 
-  renderExtended row =
-    renderTable Nothing (map (\(c, r) -> [renderColName c, renderValue r]) row)
+renderXTable :: [ByteString] -> [[ByteString]] -> ByteString
+renderXTable hs = Char8.intercalate "\n" . zipWith go [1..]
+  where
+  go :: Int -> [ByteString] -> ByteString
+  go i rs =
+       "-[ RECORD " <> Char8.pack (show i) <> " ]\n"
+    <> renderTable Nothing (zipL hs rs)
+
+  zipL :: [a] -> [a] -> [[a]]
+  zipL = zipWith \a1 a2 -> [a1, a2]
 
 renderTable :: Maybe [ByteString] -> [[ByteString]] -> ByteString
 renderTable maybeHeader rows = renderedHeader <> renderedTable
