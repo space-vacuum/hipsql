@@ -12,31 +12,34 @@ import Test.Hspec (describe, hspec, shouldReturn)
 
 main :: IO ()
 main = hspec do
+  let prompt     = "psql> "
+  let contPrompt = "      "
+
   describe "hipsql" do
     describe "launchers" do
       test "startPsql" \TestResources {..} -> do
         withLibPQConnect \conn -> do
           flip shouldReturn (Right ()) do
             race (startPsql' psqlIO conn) do
-              readStdout `shouldReturn` "psql> "
+              readStdout `shouldReturn` prompt
               writeStdin "select 1;"
               readStdout `shouldReturn` table ["?column?"] [["1"]]
-              readStdout `shouldReturn` "psql> "
+              readStdout `shouldReturn` prompt
 
       test "startPsqlWith" \TestResources {..} -> do
         flip shouldReturn (Right ()) do
           race (startPsqlWith' psqlIO withLibPQConnect) do
-            readStdout `shouldReturn` "psql> "
+            readStdout `shouldReturn` prompt
             writeStdin "select 1;"
             readStdout `shouldReturn` table ["?column?"] [["1"]]
 
-            readStdout `shouldReturn` "psql> "
+            readStdout `shouldReturn` prompt
             writeStdin "select * from ("
-            readStdout `shouldReturn` "      "
+            readStdout `shouldReturn` contPrompt
             writeStdin "  values ('a', 'b', 3), ('c', 'd', 4)"
-            readStdout `shouldReturn` "      "
+            readStdout `shouldReturn` contPrompt
             writeStdin ") as x(q, w, e)"
-            readStdout `shouldReturn` "      "
+            readStdout `shouldReturn` contPrompt
             writeStdin ";"
             readStdout `shouldReturn`
               table ["q", "w", "e"]
@@ -49,17 +52,17 @@ main = hspec do
         test "\\x" \TestResources {..} -> do
           flip shouldReturn (Right ()) do
             race (startPsqlWith' psqlIO withLibPQConnect) do
-              readStdout `shouldReturn` "psql> "
+              readStdout `shouldReturn` prompt
               writeStdin "\\x"
               readStdout `shouldReturn` "Extended display is on."
 
-              readStdout `shouldReturn` "psql> "
+              readStdout `shouldReturn` prompt
               writeStdin "select * from ("
-              readStdout `shouldReturn` "      "
+              readStdout `shouldReturn` contPrompt
               writeStdin "  values ('a', 'b', 3), ('c', 'd', 4)"
-              readStdout `shouldReturn` "      "
+              readStdout `shouldReturn` contPrompt
               writeStdin ") as x(q, w, e)"
-              readStdout `shouldReturn` "      "
+              readStdout `shouldReturn` contPrompt
               writeStdin ";"
               readStdout `shouldReturn`
                 xtable ["q", "w", "e"]
@@ -71,10 +74,10 @@ main = hspec do
         for_ ["quit", "exit", "\\q"] \quitCommand -> do
           test quitCommand \TestResources {..} -> do
             withAsync (startPsqlWith' psqlIO withLibPQConnect) \handle -> do
-              readStdout `shouldReturn` "psql> "
+              readStdout `shouldReturn` prompt
               writeStdin "select 1;"
               readStdout `shouldReturn` table ["?column?"] [["1"]]
-              readStdout `shouldReturn` "psql> "
+              readStdout `shouldReturn` prompt
               writeStdin quitCommand
               withTimeout "wait handle" (wait handle) `shouldReturn` ()
 
@@ -82,7 +85,7 @@ main = hspec do
       test "column does not exist" \TestResources {..} -> do
         flip shouldReturn (Right ()) do
           race (startPsqlWith' psqlIO withLibPQConnect) do
-            readStdout `shouldReturn` "psql> "
+            readStdout `shouldReturn` prompt
             writeStdin "select foo;"
             readStdout `shouldReturn`
               unlines
@@ -94,7 +97,7 @@ main = hspec do
       test "syntax error" \TestResources {..} -> do
         flip shouldReturn (Right ()) do
           race (startPsqlWith' psqlIO withLibPQConnect) do
-            readStdout `shouldReturn` "psql> "
+            readStdout `shouldReturn` prompt
             writeStdin "selectfoo;"
             readStdout `shouldReturn`
               unlines
