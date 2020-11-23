@@ -184,8 +184,7 @@ psql = loop
     loop
 
   invalidCommand s = do
-    writeStrLn $ "invalid command \\" <> s
-    writeStrLn "Try \\? for help."
+    writeStrLn $ "invalid command \\" <> s <> "\nTry \\? for help."
     loop
 
   runToggleExtendedDisplay = do

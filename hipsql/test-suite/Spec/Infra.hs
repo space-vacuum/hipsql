@@ -1,16 +1,18 @@
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -ddump-minimal-imports -dumpdir /tmp #-}
 module Spec.Infra where
 
+import Control.Concurrent.Async (race)
 import Control.Concurrent.Chan (newChan, readChan, writeChan)
 import Control.Monad.IO.Class (MonadIO(liftIO))
 import Data.ByteString (ByteString)
-import Hipsql.Internal (PsqlIO(..), renderTable, renderXTable)
+import Hipsql.Internal (PsqlIO(..), renderTable, renderXTable, startPsqlWith', withLibPQConnect)
 import System.Timeout (timeout)
 import Test.Hspec (Spec, expectationFailure, it)
-import qualified Data.ByteString.Char8 as Char8 (unpack)
+import qualified Data.ByteString.Char8 as Char8
 
 -- | Shorthand for a rendered table.
 table :: [ByteString] -> [[ByteString]] -> String
@@ -21,8 +23,20 @@ xtable :: [ByteString] -> [[ByteString]] -> String
 xtable hs rs = Char8.unpack $ renderXTable hs rs <> "\n"
 
 -- | A single test case using 'withTestResources'.
+test' :: String -> (TestResources -> IO ()) -> Spec
+test' name = it name . withTimeout' 5 name . withTestResources
+
+-- | A single test case using 'withTestResources'. Spawns
+-- a pseudo psql session via 'race' and asserts that the
+-- test completes before the psql session does.
 test :: String -> (TestResources -> IO ()) -> Spec
-test name = it name . withTestResources
+test name f = do
+  test' name \resources@TestResources { psqlIO } -> do
+    race (startPsqlWith' psqlIO withLibPQConnect) (f resources) >>= \case
+      Right () -> pure ()
+      Left () ->
+        expectationFailure
+          "psql session unexpectedly terminated before test completed"
 
 data TestResources = TestResources
   { readStdout :: IO String
