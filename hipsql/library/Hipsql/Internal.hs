@@ -50,6 +50,16 @@ startPsqlWith' io = ($ startPsql' io)
 withLibPQConnect :: (LibPQ.Connection -> IO ()) -> IO ()
 withLibPQConnect = Exception.bracket (LibPQ.connectdb "") LibPQ.finish
 
+helpMessage :: ByteString
+helpMessage =
+  Char8.intercalate "\n"
+    [ "General"
+    , "  \\q        quit psql"
+    , ""
+    , "Formatting"
+    , "  \\x        toggle expanded output"
+    ]
+
 -- | The monad used to run the pseudo psql session.
 type PsqlM = InputT (ReaderT PsqlEnv IO)
 
@@ -150,16 +160,33 @@ psql = loop
     prompt <- getPrompt
     inputStrLn prompt >>= \case
       Nothing -> pure ()
-      Just q -> runCommand q
+      Just q -> eval q
 
   getPrompt = do
     q <- gets queryBuffer
     pure $ if null q then "psql> " else "      "
 
-  runCommand = \case
-    s | s `elem` ["quit", "exit", "\\q"] -> pure ()
-    "\\x" -> runToggleExtendedDisplay
+  eval = \case
+    '\\' : c -> runCommand c
+    s | s `elem` ["quit", "exit"] -> quit
     q -> runQuery q
+
+  quit = pure ()
+
+  runCommand = \case
+    "x" -> runToggleExtendedDisplay
+    "?" -> runHelp
+    s | s `elem` ["q", "quit"] -> quit
+    s -> invalidCommand s
+
+  runHelp = do
+    writeBSLn helpMessage
+    loop
+
+  invalidCommand s = do
+    writeStrLn $ "invalid command \\" <> s
+    writeStrLn "Try \\? for help."
+    loop
 
   runToggleExtendedDisplay = do
     x <- toggleExtendedDisplay
