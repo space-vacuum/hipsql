@@ -1,15 +1,11 @@
 module Main where
 
 import Hipsql (startPsqlWith)
-import qualified Control.Exception as Exception
-import qualified Database.PostgreSQL.LibPQ as LibPQ
+import Hipsql.Internal (withLibPQConnect)
 
--- | Use env vars as described here:
+-- | Uses env vars as described here:
 -- https://www.postgresql.org/docs/13/libpq-envars.html
 --
 -- e.g. @PGDATABASE=mydb hipsql@
 main :: IO ()
-main = startPsqlWith withConn
-  where
-  withConn :: (LibPQ.Connection -> IO ()) -> IO ()
-  withConn = Exception.bracket (LibPQ.connectdb mempty) LibPQ.finish
+main = startPsqlWith withLibPQConnect
