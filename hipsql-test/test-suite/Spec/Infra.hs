@@ -2,50 +2,75 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -ddump-minimal-imports -dumpdir /tmp #-}
 module Spec.Infra where
 
 import Control.Concurrent.Async (race)
 import Control.Concurrent.Chan (newChan, readChan, writeChan)
+import Control.Exception (bracket)
 import Control.Monad.IO.Class (MonadIO(liftIO))
 import Data.ByteString (ByteString)
-import Hipsql.Internal (PsqlIO(..), renderTable, renderXTable, startPsqlWith', withLibPQConnect)
+import Hipsql.Client.Internal (ClientIO(..), hipsqlClient)
+import Hipsql.Server.Internal (application, newServerEnv, renderTable, renderXTable)
+import Network.Wai.Handler.Warp (testWithApplication)
+import System.IO.Unsafe (unsafePerformIO)
 import System.Timeout (timeout)
 import Test.Hspec (Spec, expectationFailure, it)
-import qualified Data.ByteString.Char8 as Char8
+import qualified Data.ByteString.Lazy.Char8 as Lazy.Char8
+import qualified Database.PostgreSQL.LibPQ as LibPQ
+import qualified Network.HTTP.Client as HTTPClient
 
 -- | Shorthand for a rendered table.
 table :: [ByteString] -> [[ByteString]] -> String
-table hs rs = Char8.unpack $ renderTable (Just hs) rs <> "\n"
+table hs rs = Lazy.Char8.unpack (renderTable (Just hs) rs) <> renderRowCount rs
 
 -- | Shorthand for a rendered "extended display" table.
 xtable :: [ByteString] -> [[ByteString]] -> String
-xtable hs rs = Char8.unpack $ renderXTable hs rs <> "\n"
+xtable hs rs = Lazy.Char8.unpack (renderXTable hs rs) <> renderRowCount rs
+
+renderRowCount :: [[ByteString]] -> String
+renderRowCount rs =
+  case length rs of
+    1 -> "\n(1 row)\n"
+    n -> "\n(" <> show n <> " rows)\n"
 
 -- | A single test case using 'withTestResources'.
 test' :: String -> (TestResources -> IO ()) -> Spec
-test' name = it name . withTimeout' 5 name . withTestResources
+test' name action = do
+  it name do
+    withTimeout' 5 name do
+      withLibPQConnect \conn -> do
+        serverEnv <- newServerEnv conn
+        testWithApplication (pure (application serverEnv)) \port -> do
+          withTestResources port action
 
 -- | A single test case using 'withTestResources'. Spawns
 -- a pseudo psql session via 'race' and asserts that the
 -- test completes before the psql session does.
 test :: String -> (TestResources -> IO ()) -> Spec
 test name f = do
-  test' name \resources@TestResources { psqlIO } -> do
-    race (startPsqlWith' psqlIO withLibPQConnect) (f resources) >>= \case
+  test' name \resources@TestResources { clientIO, port } -> do
+    race (startClient port clientIO) (f resources) >>= \case
       Right () -> pure ()
       Left () ->
         expectationFailure
-          "psql session unexpectedly terminated before test completed"
+          "hipsql client unexpectedly terminated before test completed"
+
+startClient :: Int -> ClientIO -> IO ()
+startClient port clientIO = hipsqlClient clientIO port theHttpManager
+
+theHttpManager :: HTTPClient.Manager
+theHttpManager = unsafePerformIO $ HTTPClient.newManager HTTPClient.defaultManagerSettings
+{-# NOINLINE theHttpManager #-}
 
 data TestResources = TestResources
   { readStdout :: IO String
   , writeStdin :: String -> IO ()
-  , psqlIO :: PsqlIO
+  , clientIO :: ClientIO
+  , port :: Int
   }
 
-withTestResources :: (TestResources -> IO ()) -> IO ()
-withTestResources body = do
+withTestResources :: Int -> (TestResources -> IO ()) -> IO ()
+withTestResources port body = do
   let mkStream name = do
         chan <- newChan
         let w s = withTimeout ("write" <> name <> " " <> show s) (writeChan chan s)
@@ -56,11 +81,11 @@ withTestResources body = do
   body TestResources
     { readStdout
     , writeStdin
-    , psqlIO = PsqlIO
+    , clientIO = ClientIO
         { inputStrLn' = \s -> liftIO $ writeStdout s >> Just <$> readStdin
-        , writeStrLn' = liftIO . writeStdout
-        , writeBSLn' = liftIO . writeStdout . Char8.unpack
+        , writeLBSLn' = liftIO . writeStdout . Lazy.Char8.unpack
         }
+    , port
     }
 
 withTimeout :: String -> IO a -> IO a
@@ -75,3 +100,10 @@ withTimeout' seconds name action =
         ("Failed to complete " <> show name
           <> " within " <> show seconds <> " seconds")
       error "can't get here"
+
+-- | Uses env vars as described here:
+-- https://www.postgresql.org/docs/13/libpq-envars.html
+--
+-- e.g. @PGDATABASE=mydb hipsql@
+withLibPQConnect :: (LibPQ.Connection -> IO ()) -> IO ()
+withLibPQConnect = bracket (LibPQ.connectdb "") LibPQ.finish

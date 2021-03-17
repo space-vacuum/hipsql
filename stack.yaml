@@ -1,4 +1,7 @@
 resolver: lts-16.8
 
 packages:
-- hipsql
+- hipsql-api
+- hipsql-client
+- hipsql-server
+- hipsql-test

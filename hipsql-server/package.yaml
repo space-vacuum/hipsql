@@ -1,10 +1,10 @@
-name:                hipsql
+name:                hipsql-server
 version:             0.0.0.0
 github:              "simspace/hipsql"
 license:             BSD3
 author:              "Cary Robbins"
 maintainer:          "carymrobbins@gmail.com"
-copyright:           "2020 SimSpace"
+copyright:           "2021 SimSpace"
 
 extra-source-files:
 - CHANGELOG.md
@@ -13,12 +13,13 @@ description:         Please see the README on GitHub at <https://github.com/sims
 
 dependencies:
 - base >= 4.7 && < 5
+- hipsql-api >= 0.0 && < 0.1
+- async >= 2.2.2 && < 2.3
 - bytestring >= 0.10.10.0 && < 0.11
-- exceptions >= 0.10.4 && < 0.11
-- haskeline >= 0.7.5.0 && < 0.8
 - mtl >= 2.2.2 && < 2.3
 - postgresql-libpq >= 0.9.4.2 && < 0.10
-- transformers >= 0.5.6.2 && < 0.6
+- servant-server >= 0.16 && < 0.17
+- warp >= 3.3.13 && < 3.4
 
 ghc-options:
 - -Wall
@@ -27,7 +28,7 @@ library:
   source-dirs: library
 
 executables:
-  hipsql:
+  hipsql-server:
     main: Main.hs
     source-dirs: exe
     ghc-options:
@@ -35,18 +36,4 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - hipsql
-
-tests:
-  hipsql-test:
-    main: Spec.hs
-    source-dirs: test-suite
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - hipsql
-    - async
-    - hspec
-    - postgresql-simple
+    - hipsql-server

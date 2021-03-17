@@ -1,0 +1,64 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 91ac04a49ab72a792ae8e885f68a94ce6738e30d32d9a66fb7fa499837442db0
+
+name:           hipsql-client
+version:        0.0.0.0
+description:    Please see the README on GitHub at <https://github.com/simspace/hipsql#readme>
+homepage:       https://github.com/simspace/hipsql#readme
+bug-reports:    https://github.com/simspace/hipsql/issues
+author:         Cary Robbins
+maintainer:     carymrobbins@gmail.com
+copyright:      2021 SimSpace
+license:        BSD3
+build-type:     Simple
+extra-source-files:
+    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/simspace/hipsql
+
+library
+  exposed-modules:
+      Hipsql.Client.Internal
+  other-modules:
+      Paths_hipsql_client
+  hs-source-dirs:
+      library
+  ghc-options: -Wall
+  build-depends:
+      base >=4.7 && <5
+    , bytestring >=0.10.10.0 && <0.11
+    , haskeline >=0.7.5.0 && <0.8
+    , hipsql-api >=0.0 && <0.1
+    , http-client >=0.6.4.1 && <0.7
+    , http-types >=0.12.3 && <0.13
+    , mtl >=2.2.2 && <2.3
+    , servant-client >=0.16 && <0.17
+    , servant-client-core >=0.16 && <0.17
+  default-language: Haskell2010
+
+executable hipsql-client
+  main-is: Main.hs
+  other-modules:
+      Paths_hipsql_client
+  hs-source-dirs:
+      exe
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , bytestring >=0.10.10.0 && <0.11
+    , haskeline >=0.7.5.0 && <0.8
+    , hipsql-api >=0.0 && <0.1
+    , hipsql-client
+    , http-client >=0.6.4.1 && <0.7
+    , http-types >=0.12.3 && <0.13
+    , mtl >=2.2.2 && <2.3
+    , servant-client >=0.16 && <0.17
+    , servant-client-core >=0.16 && <0.17
+  default-language: Haskell2010
