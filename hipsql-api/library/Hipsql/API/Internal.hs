@@ -1,4 +1,7 @@
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE LambdaCase #-}
 module Hipsql.API.Internal
   ( -- * Disclaimer
@@ -8,15 +11,18 @@ module Hipsql.API.Internal
     module Hipsql.API.Internal
   ) where
 
+import Data.Aeson (FromJSON, ToJSON)
+import GHC.Generics (Generic)
 import System.Environment (lookupEnv)
 import Text.Read (readMaybe)
+import qualified Data.Version
 
 lookupHipsqlPort :: IO (Either String Int)
 lookupHipsqlPort =
   lookupEnvInt "HIPSQL_PORT" `withDefault` Right defaultHipsqlPort
 
 defaultHipsqlPort :: Int
-defaultHipsqlPort = 9283
+defaultHipsqlPort = 55805
 
 lookupEnvInt :: String -> IO (Maybe (Either String Int))
 lookupEnvInt k =
@@ -30,6 +36,14 @@ withDefault :: IO (Maybe a) -> a -> IO a
 withDefault action defaultValue = flip fmap action \case
   Nothing -> defaultValue
   Just a -> a
+
+newtype Version = Version
+  { version :: [Int]
+  } deriving stock (Eq, Generic)
+    deriving anyclass (FromJSON, ToJSON)
+
+mkVersion :: Data.Version.Version -> Version
+mkVersion = Version . Data.Version.versionBranch
 
 -- $disclaimer
 --

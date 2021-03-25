@@ -1,18 +1,16 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE TypeOperators #-}
 module Hipsql.API where
 
-import Data.Aeson (FromJSON, ToJSON)
 import Data.Proxy (Proxy(Proxy))
 import GHC.Generics (Generic)
+import Hipsql.API.Internal (Version(Version), mkVersion)
 import Servant.API (type (:>), Get, JSON, OctetStream, Post, ReqBody, Summary)
 import Servant.API.Generic (type (:-), ToServantApi)
 import qualified Data.ByteString.Lazy as Lazy
 import qualified Data.List as List
-import qualified Data.Version
 import qualified Paths_hipsql_api
 
 type HipsqlAPI = ToServantApi HipsqlRoutes
@@ -34,12 +32,7 @@ theHipsqlAPI :: Proxy HipsqlAPI
 theHipsqlAPI = Proxy
 
 theHipsqlApiVersion :: Version
-theHipsqlApiVersion = Version $ Data.Version.versionBranch Paths_hipsql_api.version
-
-newtype Version = Version
-  { version :: [Int]
-  } deriving stock (Eq, Generic)
-    deriving anyclass (FromJSON, ToJSON)
+theHipsqlApiVersion = mkVersion Paths_hipsql_api.version
 
 renderVersion :: Version -> String
 renderVersion (Version xs) = List.intercalate "." $ map show xs

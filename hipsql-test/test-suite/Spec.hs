@@ -12,8 +12,8 @@ import qualified Data.ByteString.Char8 as Char8
 
 main :: IO ()
 main = hspec do
-  let prompt     = "psql> "
-  let contPrompt = "      "
+  let prompt     = "hipsql> "
+  let contPrompt = "        "
 
   describe "hipsql" do
     describe "client" do
