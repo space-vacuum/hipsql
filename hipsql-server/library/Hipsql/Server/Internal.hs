@@ -30,6 +30,7 @@ import Servant.Server
   , hoistServer, serve
   )
 import Servant.Server.Generic (genericServerT)
+import System.IO (hPutStrLn, stderr)
 import qualified Data.ByteString.Char8 as Char8
 import qualified Data.ByteString.Lazy as Lazy
 import qualified Data.ByteString.Lazy.Char8 as Lazy.Char8
@@ -250,12 +251,12 @@ application env = serve theHipsqlAPI (server env)
 hipsql' :: Int -> LibPQ.Connection -> IO ()
 hipsql' port conn = do
   env <- newServerEnv conn
-  putStrLn $ "Starting hipsql server on port " <> show port
+  hPutStrLn stderr $ "Starting hipsql server on port " <> show port
   race_ (waitForKillswitch env) (Warp.run port (application env))
   where
   waitForKillswitch env = do
     takeMVar (killswitch env)
-    putStrLn "Shutting down hipsql server"
+    hPutStrLn stderr "Shutting down hipsql server"
 
 -- | Start a pseudo psql session with the given 'LibPQ.Connection'.
 -- The server port defined by the @HIPSQL_PORT@ environment variable
