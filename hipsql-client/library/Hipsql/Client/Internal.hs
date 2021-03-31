@@ -2,6 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 module Hipsql.Client.Internal
   ( -- * Disclaimer
     -- $disclaimer
@@ -22,9 +23,11 @@ import Servant.Client
   , mkClientEnv, parseBaseUrl, runClientM
   )
 import Servant.Client.Generic (AsClientT, genericClientHoist)
-import System.Console.Haskeline (InputT, defaultSettings, getInputLine, runInputT)
+import System.Console.Haskeline (InputT, getInputLine, runInputT)
+import System.Directory (getHomeDirectory)
 import System.Environment (getArgs)
 import System.Exit (exitFailure, exitSuccess)
+import System.FilePath ((</>))
 import Text.Read (readMaybe)
 import qualified Data.ByteString.Char8 as Char8
 import qualified Data.ByteString.Lazy as Lazy
@@ -87,7 +90,16 @@ hipsqlClient :: ClientIO -> Int -> HTTPClient.Manager -> IO ()
 hipsqlClient io port httpManager = do
   servantClient <- mkServantClient httpManager port
   psqlEnv <- initPsqlEnv' io servantClient
-  flip runReaderT psqlEnv $ runInputT defaultSettings psql
+  settings <- mkHaskelineSettings
+  flip runReaderT psqlEnv $ runInputT settings psql
+  where
+  mkHaskelineSettings = do
+    userHome <- getHomeDirectory
+    pure Haskeline.Settings
+      { complete = Haskeline.noCompletion
+      , historyFile = Just $ userHome </> ".hipsql_history"
+      , autoAddHistory = True
+      }
 
 -- | Runtime state of the pseudo psql session.
 newtype ClientState = ClientState

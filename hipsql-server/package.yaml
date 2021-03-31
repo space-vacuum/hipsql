@@ -28,7 +28,7 @@ library:
   source-dirs: library
 
 executables:
-  hipsql-server:
+  hipsql-demo-server:
     main: Main.hs
     source-dirs: exe
     ghc-options:

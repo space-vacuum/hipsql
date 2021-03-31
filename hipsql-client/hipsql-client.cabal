@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 91ac04a49ab72a792ae8e885f68a94ce6738e30d32d9a66fb7fa499837442db0
+-- hash: e14f77045563e0c79b670adefd663b7c0899a4a45c264e68af6da0180bd3e98b
 
 name:           hipsql-client
 version:        0.0.0.0
@@ -34,6 +34,8 @@ library
   build-depends:
       base >=4.7 && <5
     , bytestring >=0.10.10.0 && <0.11
+    , directory >=1.3.6.0 && <1.4
+    , filepath >=1.4.2.1 && <1.5
     , haskeline >=0.7.5.0 && <0.8
     , hipsql-api >=0.0 && <0.1
     , http-client >=0.6.4.1 && <0.7
@@ -43,7 +45,7 @@ library
     , servant-client-core >=0.16 && <0.17
   default-language: Haskell2010
 
-executable hipsql-client
+executable hipsql
   main-is: Main.hs
   other-modules:
       Paths_hipsql_client
@@ -53,6 +55,8 @@ executable hipsql-client
   build-depends:
       base >=4.7 && <5
     , bytestring >=0.10.10.0 && <0.11
+    , directory >=1.3.6.0 && <1.4
+    , filepath >=1.4.2.1 && <1.5
     , haskeline >=0.7.5.0 && <0.8
     , hipsql-api >=0.0 && <0.1
     , hipsql-client

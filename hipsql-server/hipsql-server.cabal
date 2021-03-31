@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 574fb1b2556463dfa06797a32547893079ac9b8a6afddab7880a797cdb26b90d
+-- hash: 3f1a6a4e89834c10559434a5dcb26257e797ac8578f6b95d458f35185513bea6
 
 name:           hipsql-server
 version:        0.0.0.0
@@ -43,7 +43,7 @@ library
     , warp >=3.3.13 && <3.4
   default-language: Haskell2010
 
-executable hipsql-server
+executable hipsql-demo-server
   main-is: Main.hs
   other-modules:
       Paths_hipsql_server

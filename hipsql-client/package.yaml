@@ -13,6 +13,8 @@ description:         Please see the README on GitHub at <https://github.com/sims
 
 dependencies:
 - base >= 4.7 && < 5
+- directory >= 1.3.6.0 && < 1.4
+- filepath >= 1.4.2.1 && < 1.5
 - hipsql-api >= 0.0 && < 0.1
 - bytestring >= 0.10.10.0 && < 0.11
 - haskeline >= 0.7.5.0 && < 0.8
@@ -29,7 +31,7 @@ library:
   source-dirs: library
 
 executables:
-  hipsql-client:
+  hipsql:
     main: Main.hs
     source-dirs: exe
     ghc-options:

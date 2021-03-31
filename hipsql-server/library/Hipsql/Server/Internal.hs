@@ -23,6 +23,7 @@ import Data.IORef (IORef, atomicModifyIORef', newIORef, readIORef)
 import Data.Maybe (fromMaybe, listToMaybe)
 import Data.String (IsString(fromString))
 import Data.Traversable (for)
+import GHC.Stack (SrcLoc, prettySrcLoc)
 import Hipsql.API (HipsqlRoutes(HipsqlRoutes, eval, getVersion), HipsqlAPI, theHipsqlAPI, theHipsqlApiVersion)
 import Hipsql.API.Internal (lookupHipsqlPort)
 import Servant.Server
@@ -248,10 +249,14 @@ application :: ServerEnv -> Application
 application env = serve theHipsqlAPI (server env)
 
 -- | Same as 'hipsql' but allows you to specify the @port@ directly.
-hipsql' :: Int -> LibPQ.Connection -> IO ()
-hipsql' port conn = do
+hipsql' :: Maybe SrcLoc -> Int -> LibPQ.Connection -> IO ()
+hipsql' loc port conn = do
   env <- newServerEnv conn
-  hPutStrLn stderr $ "Starting hipsql server on port " <> show port
+  hPutStrLn stderr $
+    "Starting hipsql server on port "
+      <> show port
+      <> "; called at "
+      <> maybe "<unknown>" prettySrcLoc loc
   race_ (waitForKillswitch env) (Warp.run port (application env))
   where
   waitForKillswitch env = do
@@ -261,23 +266,23 @@ hipsql' port conn = do
 -- | Start a pseudo psql session with the given 'LibPQ.Connection'.
 -- The server port defined by the @HIPSQL_PORT@ environment variable
 -- will be used. If unset, the port @9283@ will be used.
-hipsql :: LibPQ.Connection -> IO ()
-hipsql conn = do
+hipsql :: Maybe SrcLoc -> LibPQ.Connection -> IO ()
+hipsql loc conn = do
   lookupHipsqlPort >>= \case
     Left message -> do
       error $ "Failed to start hipsql server; could not parse port: " <> message
     Right port -> do
-      hipsql' port conn
+      hipsql' loc port conn
 
 -- | Same as 'hipsql' except uses a 'LibPQ.Connection' acquiring function.
 -- Useful when integrating with libraries like @postgresql-simple@ which
 -- give you exclusive access to the 'LibPQ.Connection' via such a function.
-hipsqlWith :: ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
-hipsqlWith = ($ hipsql)
+hipsqlWith :: Maybe SrcLoc -> ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
+hipsqlWith loc f = f (hipsql loc)
 
 -- | Same as 'hipsqlWith' but allows you to specify the @port@ directly.
-hipsqlWith' :: Int -> ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
-hipsqlWith' port = ($ hipsql' port)
+hipsqlWith' :: Maybe SrcLoc -> Int -> ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
+hipsqlWith' loc port f = f (hipsql' loc port)
 
 -- $disclaimer
 --
