@@ -249,10 +249,10 @@ application :: ServerEnv -> Application
 application env = serve theHipsqlAPI (server env)
 
 -- | Same as 'hipsql' but allows you to specify the @port@ directly.
-hipsql' :: Maybe SrcLoc -> Int -> LibPQ.Connection -> IO ()
-hipsql' loc port conn = do
+hipsql' :: Maybe SrcLoc -> Config -> LibPQ.Connection -> IO ()
+hipsql' loc Config { port, logger } conn = do
   env <- newServerEnv conn
-  hPutStrLn stderr $
+  logger $
     "Starting hipsql server on port "
       <> show port
       <> "; called at "
@@ -263,16 +263,29 @@ hipsql' loc port conn = do
     takeMVar (killswitch env)
     hPutStrLn stderr "Shutting down hipsql server"
 
+data Config = Config
+  { port :: Int
+  , logger :: String -> IO ()
+  }
+
+getDefaultConfig :: IO Config
+getDefaultConfig = do
+  lookupHipsqlPort >>= \case
+    Left message -> do
+      error $ "Failed to start hipsql server; could not parse port: " <> message
+    Right port -> do
+      pure Config
+        { port
+        , logger = hPutStrLn stderr
+        }
+
 -- | Start a pseudo psql session with the given 'LibPQ.Connection'.
 -- The server port defined by the @HIPSQL_PORT@ environment variable
 -- will be used. If unset, the port @9283@ will be used.
 hipsql :: Maybe SrcLoc -> LibPQ.Connection -> IO ()
 hipsql loc conn = do
-  lookupHipsqlPort >>= \case
-    Left message -> do
-      error $ "Failed to start hipsql server; could not parse port: " <> message
-    Right port -> do
-      hipsql' loc port conn
+  config <- getDefaultConfig
+  hipsql' loc config conn
 
 -- | Same as 'hipsql' except uses a 'LibPQ.Connection' acquiring function.
 -- Useful when integrating with libraries like @postgresql-simple@ which
@@ -281,8 +294,8 @@ hipsqlWith :: Maybe SrcLoc -> ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
 hipsqlWith loc f = f (hipsql loc)
 
 -- | Same as 'hipsqlWith' but allows you to specify the @port@ directly.
-hipsqlWith' :: Maybe SrcLoc -> Int -> ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
-hipsqlWith' loc port f = f (hipsql' loc port)
+hipsqlWith' :: Maybe SrcLoc -> Config -> ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
+hipsqlWith' loc config f = f (hipsql' loc config)
 
 -- $disclaimer
 --
