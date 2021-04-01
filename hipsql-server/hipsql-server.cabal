@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3f1a6a4e89834c10559434a5dcb26257e797ac8578f6b95d458f35185513bea6
+-- hash: f0cedace01b47986a3e38bacb0d915e920465e07875cac545339742af0415b45
 
 name:           hipsql-server
 version:        0.0.0.0
@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Hipsql.Server
+      Hipsql.Server.Adapter
       Hipsql.Server.Internal
   other-modules:
       Paths_hipsql_server
@@ -37,6 +38,7 @@ library
     , base >=4.7 && <5
     , bytestring >=0.10.10.0 && <0.11
     , hipsql-api >=0.0 && <0.1
+    , hipsql-monad >=0.0 && <0.1
     , mtl >=2.2.2 && <2.3
     , postgresql-libpq >=0.9.4.2 && <0.10
     , servant-server >=0.16 && <0.17
@@ -55,6 +57,7 @@ executable hipsql-demo-server
     , base >=4.7 && <5
     , bytestring >=0.10.10.0 && <0.11
     , hipsql-api >=0.0 && <0.1
+    , hipsql-monad >=0.0 && <0.1
     , hipsql-server
     , mtl >=2.2.2 && <2.3
     , postgresql-libpq >=0.9.4.2 && <0.10

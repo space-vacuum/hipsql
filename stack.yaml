@@ -3,5 +3,6 @@ resolver: lts-16.8
 packages:
 - hipsql-api
 - hipsql-client
+- hipsql-monad
 - hipsql-server
 - hipsql-test

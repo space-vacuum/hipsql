@@ -1,8 +1,8 @@
 module Hipsql.Server
-  ( hipsql
-  , hipsql'
-  , hipsqlWith
-  , hipsqlWith'
+  ( startHipsql
+  , startHipsql'
+  , startHipsqlWith
+  , startHipsqlWith'
   ) where
 
 import Hipsql.Server.Internal

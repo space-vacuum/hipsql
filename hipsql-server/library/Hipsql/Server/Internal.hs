@@ -248,9 +248,9 @@ helpMessage =
 application :: ServerEnv -> Application
 application env = serve theHipsqlAPI (server env)
 
--- | Same as 'hipsql' but allows you to specify the @port@ directly.
-hipsql' :: Maybe SrcLoc -> Config -> LibPQ.Connection -> IO ()
-hipsql' loc Config { port, logger } conn = do
+-- | Same as 'startHipsql' but allows you to specify the @port@ directly.
+startHipsql' :: Maybe SrcLoc -> Config -> LibPQ.Connection -> IO ()
+startHipsql' loc Config { port, logger } conn = do
   env <- newServerEnv conn
   logger $
     "Starting hipsql server on port "
@@ -282,20 +282,20 @@ getDefaultConfig = do
 -- | Start a pseudo psql session with the given 'LibPQ.Connection'.
 -- The server port defined by the @HIPSQL_PORT@ environment variable
 -- will be used. If unset, the port @9283@ will be used.
-hipsql :: Maybe SrcLoc -> LibPQ.Connection -> IO ()
-hipsql loc conn = do
+startHipsql :: Maybe SrcLoc -> LibPQ.Connection -> IO ()
+startHipsql loc conn = do
   config <- getDefaultConfig
-  hipsql' loc config conn
+  startHipsql' loc config conn
 
--- | Same as 'hipsql' except uses a 'LibPQ.Connection' acquiring function.
+-- | Same as 'startHipsql' except uses a 'LibPQ.Connection' acquiring function.
 -- Useful when integrating with libraries like @postgresql-simple@ which
 -- give you exclusive access to the 'LibPQ.Connection' via such a function.
-hipsqlWith :: Maybe SrcLoc -> ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
-hipsqlWith loc f = f (hipsql loc)
+startHipsqlWith :: Maybe SrcLoc -> ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
+startHipsqlWith loc f = f (startHipsql loc)
 
--- | Same as 'hipsqlWith' but allows you to specify the @port@ directly.
-hipsqlWith' :: Maybe SrcLoc -> Config -> ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
-hipsqlWith' loc config f = f (hipsql' loc config)
+-- | Same as 'startHipsqlWith' but allows you to specify the @port@ directly.
+startHipsqlWith' :: Maybe SrcLoc -> Config -> ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
+startHipsqlWith' loc config f = f (startHipsql' loc config)
 
 -- $disclaimer
 --

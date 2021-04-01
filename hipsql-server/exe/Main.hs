@@ -1,10 +1,19 @@
+-- | This executable serves as an example for how to start @hipsql@ from
+-- your own program, either directly in 'IO' or within your own 'Monad'.
+{-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Main where
 
 import Control.Exception (bracket)
+import Control.Monad.IO.Class (MonadIO(liftIO))
+import Control.Monad.Reader (MonadReader(ask), ReaderT(runReaderT))
 import Data.Maybe (listToMaybe)
-import GHC.Stack (HasCallStack, callStack, getCallStack)
-import Hipsql.Server (hipsqlWith)
+import GHC.Stack (HasCallStack, SrcLoc, callStack, getCallStack)
+import Hipsql.Monad (MonadHipsqlAdapter(hipsqlAcquireLibPQ))
+import Hipsql.Server (startHipsql)
+import Hipsql.Server.Adapter (hipsql)
 import qualified Database.PostgreSQL.LibPQ as LibPQ
 
 -- | Uses env vars as described here:
@@ -12,14 +21,32 @@ import qualified Database.PostgreSQL.LibPQ as LibPQ
 --
 -- e.g. @PGDATABASE=mydb hipsql@
 main :: IO ()
-main = go
+main = withLibPQConnect \conn -> do
+  demoIO conn
+  runReaderT demoReaderT conn
+
+withLibPQConnect :: (LibPQ.Connection -> IO ()) -> IO ()
+withLibPQConnect = bracket (LibPQ.connectdb "") LibPQ.finish
+
+-- | Example usage of starting hipsql in 'IO'.
+demoIO :: LibPQ.Connection -> IO ()
+demoIO conn = do
+  putStrLn "hipsql-demo-server: demonstrating IO ..."
+  startHipsql loc conn
   where
-  go :: (HasCallStack) => IO ()
-  go = do
-    hipsqlWith
-      (fmap snd $ listToMaybe $ getCallStack callStack)
-      withLibPQConnect
+  loc :: (HasCallStack) => Maybe SrcLoc
+  loc = fmap snd $ listToMaybe $ getCallStack callStack
 
-  withLibPQConnect :: (LibPQ.Connection -> IO ()) -> IO ()
-  withLibPQConnect = bracket (LibPQ.connectdb "") LibPQ.finish
+-- | Example usage of starting hipsql with a 'Monad' which has
+-- an instance for 'MonadHipsqlAdapter'.
+demoReaderT :: ReaderT LibPQ.Connection IO ()
+demoReaderT = do
+  liftIO $ putStrLn "hipsql-demo-server: demonstrating ReaderT ..."
+  hipsql
 
+-- | Example instance for 'MonadHipsqlAdapter'. This is not necessary
+-- for using @hipsql@; rather, it is simply convenient.
+instance MonadHipsqlAdapter (ReaderT LibPQ.Connection IO) where
+  hipsqlAcquireLibPQ f = do
+    conn <- ask
+    liftIO $ f conn

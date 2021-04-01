@@ -39,4 +39,9 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - hipsql-client
+      - hipsql-client
+    # Necessary to deal with "error: non-portable path to file" in OSX.
+    when:
+    - condition: os(darwin)
+      ghc-options:
+      - -optP-Wno-nonportable-include-path
