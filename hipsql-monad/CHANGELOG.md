@@ -1,3 +1,5 @@
 # Changelog for hipsql-monad
 
-## Unreleased changes
+## 0.0.0.0
+
+* Initial release

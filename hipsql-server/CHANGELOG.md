@@ -1,3 +1,5 @@
 # Changelog for hipsql-server
 
-## Unreleased changes
+## 0.0.0.0
+
+* Initial release
