@@ -1,0 +1,22 @@
+name:                hipsql-monad
+version:             0.0.0.0
+github:              "simspace/hipsql"
+license:             BSD3
+author:              "Cary Robbins"
+maintainer:          "carymrobbins@gmail.com"
+copyright:           "2021 SimSpace"
+
+extra-source-files:
+- CHANGELOG.md
+
+description:         Please see the README on GitHub at <https://github.com/simspace/hipsql#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- postgresql-libpq >= 0.9.4.2 && < 0.10
+
+ghc-options:
+  - -Wall
+
+library:
+  source-dirs: library

@@ -1,35 +1,25 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# OPTIONS_GHC -ddump-minimal-imports -dumpdir /tmp #-}
 module Main where
 
 import Control.Concurrent.Async (race, wait, withAsync)
 import Data.Foldable (for_)
-import Hipsql.Internal (helpMessage, startPsql', startPsqlWith', withLibPQConnect)
-import Spec.Infra (TestResources(..), table, test, test', withTimeout, xtable)
+import Hipsql.Server.Internal (helpMessage)
+import Spec.Infra (TestResources(..), startClient, table, test, test', withTimeout, xtable)
 import Test.Hspec (describe, hspec, shouldReturn)
 import qualified Data.ByteString.Char8 as Char8
 
 main :: IO ()
 main = hspec do
-  let prompt     = "psql> "
-  let contPrompt = "      "
+  let prompt     = "hipsql> "
+  let contPrompt = "        "
 
   describe "hipsql" do
-    describe "launchers" do
-      test' "startPsql" \TestResources {..} -> do
-        withLibPQConnect \conn -> do
-          flip shouldReturn (Right ()) do
-            race (startPsql' psqlIO conn) do
-              readStdout `shouldReturn` prompt
-              writeStdin "select 1;"
-              readStdout `shouldReturn` table ["?column?"] [["1"]]
-              readStdout `shouldReturn` prompt
-
-      test' "startPsqlWith" \TestResources {..} -> do
+    describe "client" do
+      test' "hipsqlClient" \TestResources {..} -> do
         flip shouldReturn (Right ()) do
-          race (startPsqlWith' psqlIO withLibPQConnect) do
+          race (startClient port clientIO) do
             readStdout `shouldReturn` prompt
             writeStdin "select 1;"
             readStdout `shouldReturn` table ["?column?"] [["1"]]
@@ -72,7 +62,7 @@ main = hspec do
       describe "quit" do
         for_ ["quit", "exit", "\\q"] \quitCommand -> do
           test' quitCommand \TestResources {..} -> do
-            withAsync (startPsqlWith' psqlIO withLibPQConnect) \handle -> do
+            withAsync (startClient port clientIO) \handle -> do
               readStdout `shouldReturn` prompt
               writeStdin "select 1;"
               readStdout `shouldReturn` table ["?column?"] [["1"]]
