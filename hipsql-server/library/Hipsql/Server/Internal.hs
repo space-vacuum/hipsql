@@ -1,3 +1,4 @@
+-- | Internal module which implements starting a @hipsql-server@ from Haskell code.
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DerivingStrategies #-}
@@ -39,17 +40,19 @@ import qualified Data.List as List
 import qualified Database.PostgreSQL.LibPQ as LibPQ
 import qualified Network.Wai.Handler.Warp as Warp
 
+-- | Runtime environment of the @hipsql@ server.
 data ServerEnv = ServerEnv
   { conn :: LibPQ.Connection
   , killswitch :: MVar ()
   , state :: IORef ServerState
   }
 
--- | Runtime state of the pseudo psql session.
+-- | Runtime state of the @hipsql@ server.
 newtype ServerState = ServerState
   { extendedDisplay :: Bool
   }
 
+-- | Create an initial 'ServerEnv'.
 newServerEnv :: LibPQ.Connection -> IO ServerEnv
 newServerEnv conn = do
   killswitch <- newEmptyMVar
@@ -58,6 +61,8 @@ newServerEnv conn = do
     }
   pure ServerEnv { conn, killswitch, state }
 
+-- | Lifts the 'IO' action to a @servant@ 'Handler', ensuring exceptions
+-- are handled accordingly.
 toHandler :: IO a -> Handler a
 toHandler = Handler . ExceptT . handleServantErr
   where
@@ -72,6 +77,7 @@ toHandler = Handler . ExceptT . handleServantErr
     Just (QueryError m) -> err400 { errBody = Lazy.Char8.fromStrict m }
     Nothing -> err500 { errBody = fromString $ show e }
 
+-- | Create a @servant@ 'Server' of the 'HipsqlAPI'.
 server :: ServerEnv -> Server HipsqlAPI
 server env = hoistServer theHipsqlAPI toHandler ioServer
   where
@@ -235,22 +241,33 @@ data QueryResponse = QueryResponse
   , resultRows :: [[Maybe ByteString]]
   }
 
+-- | Help message displayed when the user gives the @\?@ command.
 helpMessage :: ByteString
 helpMessage =
   Char8.intercalate "\n"
     [ "General"
     , "  \\q        quit psql"
+    , "Help"
+    , "  \\?        show this help message"
     , ""
     , "Formatting"
     , "  \\x        toggle expanded output"
     ]
 
+-- | A @servant@ 'Application' of the 'HipsqlAPI'.
 application :: ServerEnv -> Application
 application env = serve theHipsqlAPI (server env)
 
--- | Same as 'startHipsql' but allows you to specify the @port@ directly.
-startHipsql' :: Maybe SrcLoc -> Config -> LibPQ.Connection -> IO ()
-startHipsql' loc Config { port, logger } conn = do
+-- | Start a @hipsql@ session with the given 'LibPQ.Connection'.
+startHipsql :: Maybe SrcLoc -> LibPQ.Connection -> IO ()
+startHipsql loc conn = do
+  config <- getDefaultConfig
+  deps <- getDefaultDeps
+  startHipsql' loc config deps conn
+
+-- | Same as 'startHipsql' but allows you to specify the 'Config' and 'Deps' directly.
+startHipsql' :: Maybe SrcLoc -> Config -> Deps -> LibPQ.Connection -> IO ()
+startHipsql' loc config deps conn = do
   env <- newServerEnv conn
   logger $
     "Starting hipsql server on port "
@@ -259,15 +276,30 @@ startHipsql' loc Config { port, logger } conn = do
       <> maybe "<unknown>" prettySrcLoc loc
   race_ (waitForKillswitch env) (Warp.run port (application env))
   where
+  Config { port } = config
+
+  Deps { logger } = deps
+
   waitForKillswitch env = do
     takeMVar (killswitch env)
-    hPutStrLn stderr "Shutting down hipsql server"
+    logger "Shutting down hipsql server"
 
-data Config = Config
+-- | Same as 'startHipsql' except uses a 'LibPQ.Connection' acquiring function.
+-- Useful when integrating with libraries like @postgresql-simple@ which
+-- give you exclusive access to the 'LibPQ.Connection' via such a function.
+startHipsqlWith :: Maybe SrcLoc -> ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
+startHipsqlWith loc f = f (startHipsql loc)
+
+-- | Same as 'startHipsqlWith' but allows you to specify the 'Config' and 'Deps' directly.
+startHipsqlWith' :: Maybe SrcLoc -> Config -> Deps -> ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
+startHipsqlWith' loc config deps f = f (startHipsql' loc config deps)
+
+-- | Configuration required for starting a @hipsql@ server.
+newtype Config = Config
   { port :: Int
-  , logger :: String -> IO ()
   }
 
+-- | Gets the default 'Config' used by the @hipsql@ server.
 getDefaultConfig :: IO Config
 getDefaultConfig = do
   lookupHipsqlPort >>= \case
@@ -276,26 +308,19 @@ getDefaultConfig = do
     Right port -> do
       pure Config
         { port
-        , logger = hPutStrLn stderr
         }
 
--- | Start a pseudo psql session with the given 'LibPQ.Connection'.
--- The server port defined by the @HIPSQL_PORT@ environment variable
--- will be used. If unset, the port @9283@ will be used.
-startHipsql :: Maybe SrcLoc -> LibPQ.Connection -> IO ()
-startHipsql loc conn = do
-  config <- getDefaultConfig
-  startHipsql' loc config conn
+-- | Dependencies required for starting a @hipsql@ server.
+newtype Deps = Deps
+  { logger :: String -> IO ()
+  }
 
--- | Same as 'startHipsql' except uses a 'LibPQ.Connection' acquiring function.
--- Useful when integrating with libraries like @postgresql-simple@ which
--- give you exclusive access to the 'LibPQ.Connection' via such a function.
-startHipsqlWith :: Maybe SrcLoc -> ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
-startHipsqlWith loc f = f (startHipsql loc)
-
--- | Same as 'startHipsqlWith' but allows you to specify the @port@ directly.
-startHipsqlWith' :: Maybe SrcLoc -> Config -> ((LibPQ.Connection -> IO ()) -> IO ()) -> IO ()
-startHipsqlWith' loc config f = f (startHipsql' loc config)
+-- | Gets the default 'Deps' used by the @hipsql@ server.
+getDefaultDeps :: IO Deps
+getDefaultDeps = do
+  pure Deps
+    { logger = hPutStrLn stderr
+    }
 
 -- $disclaimer
 --

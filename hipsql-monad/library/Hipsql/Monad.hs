@@ -2,11 +2,11 @@
 -- supporting @hipsql@ interop in your own 'Monad'.
 --
 -- In practice, you generally want to define an instance for
--- 'MonadHipsqlAdapter' and use the orphan instance provided by
--- importing 'Hipsql.Server.Adapter' from @hipsql-server@. This way,
+-- 'MonadHipsqlAdapter' and use the orphan instance for 'MonadHipsql' provided
+-- by importing 'Hipsql.Server.Adapter' from @hipsql-server@. This way,
 -- you can optionally depend on @hipsql-server@ only when you need to
 -- but can always depend on @hipsql-monad@, the latter of which would
--- not cause you transitively depend on any additional packages.
+-- not cause you to transitively depend on any additional packages.
 module Hipsql.Monad where
 
 import GHC.Stack (HasCallStack)
@@ -17,6 +17,7 @@ import qualified Database.PostgreSQL.LibPQ as LibPQ
 -- N.B. You generally do not want to define this instance on your own.
 -- See the haddock at the top of this module.
 class MonadHipsql m where
+  -- | Starts a @hipsql@ session in the given @Monad m@.
   hipsql :: (HasCallStack) => m ()
 
 -- | Convenience type class used for deriving instances of 'MonadHipsql'.

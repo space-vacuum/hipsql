@@ -1,3 +1,6 @@
+-- | Internal module which implements the @hipsql@ executable.
+-- While it is exposed as a library, it is not intended to be used
+-- as such.
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -38,9 +41,11 @@ import qualified Paths_hipsql_client
 import qualified System.Console.Haskeline as Haskeline
 import qualified System.IO as IO
 
+-- | The compiled @hipsql@ client version.
 theHipsqlClientVersion :: Version
 theHipsqlClientVersion = mkVersion Paths_hipsql_client.version
 
+-- | Main entry point for the @hipsql@ client executable.
 main :: IO ()
 main = run \port -> do
   httpManager <- HTTPClient.newManager HTTPClient.defaultManagerSettings
@@ -78,14 +83,17 @@ main = run \port -> do
           Just port -> action port
           Nothing -> abort $ "Invalid port: " <> show arg <> "\n" <> usage
 
+-- | Usage message for @hipsql@.
 usage :: String
-usage = "Usage: hipsql-client [port=" <> show defaultHipsqlPort <> "]"
+usage = "Usage: hipsql [port=" <> show defaultHipsqlPort <> "]"
 
+-- | Aborts with the given message on @stderr@ and exits with a non-zero status.
 abort :: String -> IO a
 abort message = do
   IO.hPutStrLn IO.stderr message
   exitFailure
 
+-- | Run the client using the specified configuration.
 hipsqlClient :: ClientIO -> Int -> HTTPClient.Manager -> IO ()
 hipsqlClient io port httpManager = do
   servantClient <- mkServantClient httpManager port
@@ -101,11 +109,12 @@ hipsqlClient io port httpManager = do
       , autoAddHistory = True
       }
 
--- | Runtime state of the pseudo psql session.
+-- | Runtime state of the @hipsql@ session.
 newtype ClientState = ClientState
   { queryBuffer :: ByteString
   }
 
+-- | The @hipsql@ interpreter loop.
 psql :: PsqlM ()
 psql = checkCompatibility *> loop
   where
@@ -165,6 +174,7 @@ psql = checkCompatibility *> loop
 
   clearQueryBuffer = void $ modify \s -> s { queryBuffer = mempty }
 
+-- | Runtime environment of the @hipsql@ session.
 data PsqlEnv = PsqlEnv
   { serverApiVersion :: Version
   , state :: IORef ClientState
@@ -172,13 +182,17 @@ data PsqlEnv = PsqlEnv
   , serverEval' :: Lazy.ByteString -> IO Lazy.ByteString
   }
 
+-- | Console IO actions performed by the @hipsql@ client. Useful so we can
+-- write tests which do not need to interact with the real @stdout@.
 data ClientIO = ClientIO
   { inputStrLn' :: String -> PsqlM (Maybe String)
   , writeLBSLn' :: Lazy.ByteString -> PsqlM ()
   }
 
+-- | Interpreter monad for our @hipsql@ client.
 type PsqlM = InputT (ReaderT PsqlEnv IO)
 
+-- | Default implementation for calling @eval@ against a @hipsql-server@.
 getServerEval :: ServantClient -> Lazy.ByteString -> IO Lazy.ByteString
 getServerEval servantClient input = do
   eval servantClient input `catch` \case
@@ -210,9 +224,12 @@ modify f = do
   ref <- lift $ asks state
   liftIO $ atomicModifyIORef' ref \s -> let s' = f s in (s', s')
 
+-- | The default, initial 'PsqlEnv' used by the @hipsql@ client.
 initPsqlEnv :: ServantClient -> IO PsqlEnv
 initPsqlEnv = initPsqlEnv' defaultClientIO
 
+-- | Same as 'initPsqlEnv' but allows for specifying the 'ClientIO'; mostly
+-- useful for tests.
 initPsqlEnv' :: ClientIO -> ServantClient -> IO PsqlEnv
 initPsqlEnv' io servantClient = do
   serverApiVersion <- getVersion servantClient
@@ -224,6 +241,7 @@ initPsqlEnv' io servantClient = do
     , serverEval' = getServerEval servantClient
     }
 
+-- | The default 'ClientIO' operations
 defaultClientIO :: ClientIO
 defaultClientIO = ClientIO
   { inputStrLn' = getInputLine

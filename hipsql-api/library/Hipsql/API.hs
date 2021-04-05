@@ -1,3 +1,4 @@
+-- | Public API for @hipsql@ server and client implementations using @servant@.
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
@@ -13,8 +14,10 @@ import qualified Data.ByteString.Lazy as Lazy
 import qualified Data.List as List
 import qualified Paths_hipsql_api
 
+-- | The servant API type for @hipsql@.
 type HipsqlAPI = ToServantApi HipsqlRoutes
 
+-- | The API routes for @hipsql@.
 data HipsqlRoutes route = HipsqlRoutes
   { getVersion :: route :-
       Summary "Gets the current server version"
@@ -28,15 +31,20 @@ data HipsqlRoutes route = HipsqlRoutes
         :> Post '[OctetStream] Lazy.ByteString
   } deriving stock (Generic)
 
+-- | A @hipsql@ API proxy value.
 theHipsqlAPI :: Proxy HipsqlAPI
 theHipsqlAPI = Proxy
 
+-- | The current @hipsql-api@ version; servers and clients should use this
+-- to report which version of the API they are compiled against.
 theHipsqlApiVersion :: Version
 theHipsqlApiVersion = mkVersion Paths_hipsql_api.version
 
+-- | Render a 'Version' to a human-readable 'String'.
 renderVersion :: Version -> String
 renderVersion (Version xs) = List.intercalate "." $ map show xs
 
+-- | Check if two 'Version's are compatible wth one another.
 isCompatibleWith :: Version -> Version -> Bool
 isCompatibleWith (Version xs) (Version ys) =
   take 2 xs == take 2 ys
