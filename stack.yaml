@@ -1,5 +1,4 @@
-resolver: lts-16.8
-
+resolver: lts-18.27
 packages:
 - hipsql-api
 - hipsql-client
