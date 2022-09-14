@@ -6,3 +6,4 @@ packages:
 - hipsql-monad
 - hipsql-server
 - hipsql-test
+- hipsql-tx-simple

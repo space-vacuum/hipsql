@@ -1,11 +1,14 @@
 # hipsql
 
+[![build](https://github.com/simspace/hipsql/actions/workflows/build.yml/badge.svg)](https://github.com/simspace/hipsql/actions/workflows/build.yml)
+
 |Package|Version|
 |-|-|
 |hipsql-api|[![Hackage](https://img.shields.io/hackage/v/hipsql-api.svg?logo=haskell&color=blueviolet)](https://hackage.haskell.org/package/hipsql-api)|
 |hipsql-client|[![Hackage](https://img.shields.io/hackage/v/hipsql-client.svg?logo=haskell&color=blueviolet)](https://hackage.haskell.org/package/hipsql-client)|
 |hipsql-monad|[![Hackage](https://img.shields.io/hackage/v/hipsql-monad.svg?logo=haskell&color=blueviolet)](https://hackage.haskell.org/package/hipsql-monad)|
 |hipsql-server|[![Hackage](https://img.shields.io/hackage/v/hipsql-server.svg?logo=haskell&color=blueviolet)](https://hackage.haskell.org/package/hipsql-server)|
+|hipsql-tx-simple|[![Hackage](https://img.shields.io/hackage/v/hipsql-tx-simple.svg?logo=haskell&color=blueviolet)](https://hackage.haskell.org/package/hipsql-tx-simple)|
 
 ---
 
