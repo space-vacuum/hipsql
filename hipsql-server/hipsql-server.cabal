@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 72c534787bf6231d66bd2ee3567afdf3c57efb4879448a5e1478f0442e077063
+-- hash: b1c0985454e57223a69e63e111f00e0c4e2e6d6f7388a49928f1957ac563de96
 
 name:           hipsql-server
-version:        0.0.0.0
+version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/simspace/hipsql#readme>
 homepage:       https://github.com/simspace/hipsql#readme
 bug-reports:    https://github.com/simspace/hipsql/issues
@@ -36,12 +36,12 @@ library
   build-depends:
       async >=2.2.2 && <2.3
     , base >=4.7 && <5
-    , bytestring >=0.10.10.0 && <0.11
-    , hipsql-api ==0.0.*
-    , hipsql-monad ==0.0.*
+    , bytestring >=0.10.10.0 && <0.12
+    , hipsql-api ==0.1.*
+    , hipsql-monad >=0.0 && <0.2
     , mtl >=2.2.2 && <2.3
     , postgresql-libpq >=0.9.4.2 && <0.10
-    , servant-server ==0.16.*
+    , servant-server >=0.16 && <0.20
     , warp >=3.3.13 && <3.4
   default-language: Haskell2010
 
@@ -55,12 +55,12 @@ executable hipsql-demo-server
   build-depends:
       async >=2.2.2 && <2.3
     , base >=4.7 && <5
-    , bytestring >=0.10.10.0 && <0.11
-    , hipsql-api ==0.0.*
-    , hipsql-monad ==0.0.*
+    , bytestring >=0.10.10.0 && <0.12
+    , hipsql-api ==0.1.*
+    , hipsql-monad >=0.0 && <0.2
     , hipsql-server
     , mtl >=2.2.2 && <2.3
     , postgresql-libpq >=0.9.4.2 && <0.10
-    , servant-server ==0.16.*
+    , servant-server >=0.16 && <0.20
     , warp >=3.3.13 && <3.4
   default-language: Haskell2010

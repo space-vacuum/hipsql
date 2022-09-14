@@ -1,5 +1,5 @@
 { pkg =
-  { version = "0.0.0.0"
+  { version = "0.1.0.0"
   , github = "simspace/hipsql"
   , license = "BSD3"
   , author = "Cary Robbins"
