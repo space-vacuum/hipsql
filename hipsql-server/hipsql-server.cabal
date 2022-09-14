@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.2.
+-- This file has been generated from package.dhall by hpack version 0.35.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f0cedace01b47986a3e38bacb0d915e920465e07875cac545339742af0415b45
+-- hash: 72c534787bf6231d66bd2ee3567afdf3c57efb4879448a5e1478f0442e077063
 
 name:           hipsql-server
 version:        0.0.0.0
@@ -37,11 +37,11 @@ library
       async >=2.2.2 && <2.3
     , base >=4.7 && <5
     , bytestring >=0.10.10.0 && <0.11
-    , hipsql-api >=0.0 && <0.1
-    , hipsql-monad >=0.0 && <0.1
+    , hipsql-api ==0.0.*
+    , hipsql-monad ==0.0.*
     , mtl >=2.2.2 && <2.3
     , postgresql-libpq >=0.9.4.2 && <0.10
-    , servant-server >=0.16 && <0.17
+    , servant-server ==0.16.*
     , warp >=3.3.13 && <3.4
   default-language: Haskell2010
 
@@ -56,11 +56,11 @@ executable hipsql-demo-server
       async >=2.2.2 && <2.3
     , base >=4.7 && <5
     , bytestring >=0.10.10.0 && <0.11
-    , hipsql-api >=0.0 && <0.1
-    , hipsql-monad >=0.0 && <0.1
+    , hipsql-api ==0.0.*
+    , hipsql-monad ==0.0.*
     , hipsql-server
     , mtl >=2.2.2 && <2.3
     , postgresql-libpq >=0.9.4.2 && <0.10
-    , servant-server >=0.16 && <0.17
+    , servant-server ==0.16.*
     , warp >=3.3.13 && <3.4
   default-language: Haskell2010
