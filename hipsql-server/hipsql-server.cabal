@@ -1,11 +1,5 @@
 cabal-version: 1.12
 
--- This file has been generated from package.dhall by hpack version 0.35.0.
---
--- see: https://github.com/sol/hpack
---
--- hash: b1c0985454e57223a69e63e111f00e0c4e2e6d6f7388a49928f1957ac563de96
-
 name:           hipsql-server
 version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/simspace/hipsql#readme>
