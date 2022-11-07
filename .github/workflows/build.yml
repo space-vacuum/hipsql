@@ -13,14 +13,14 @@ jobs:
       CONFIG: "--enable-tests --enable-benchmarks"
       PGHOST: localhost
       PGPORT: 5432
-      PGDATABASE: ci_postgresql_ltree
+      PGDATABASE: ci
       PGUSER: postgres
       PGPASSWORD: postgres
 
     strategy:
       matrix:
-        ghc: ['8.8.4']
-        cabal: ['3.6.0.0']
+        ghc: ['9.2.4']
+        cabal: ['3.8.1.0']
         os: [ubuntu-latest]
 
     name: ghc-${{ matrix.ghc }} cabal-${{ matrix.cabal }}

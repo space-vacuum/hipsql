@@ -15,6 +15,7 @@ module Hipsql.Client.Internal
   ) where
 
 import Control.Exception (catch, throwIO)
+import qualified Control.Monad.Catch as MonadCatch (catch, throwM)
 import Control.Monad ((<=<), unless, void)
 import Control.Monad.Reader (MonadIO(liftIO), MonadTrans(lift), ReaderT(runReaderT), ask, asks)
 import Data.ByteString (ByteString)
@@ -160,10 +161,10 @@ psql = checkCompatibility *> loop
 
   quit = do
     void (serverEval "\\q")
-      `Haskeline.catch` \case
+      `MonadCatch.catch` \case
         -- In case the server shuts down before we're done reading the response.
         ConnectionError _ -> pure ()
-        e -> Haskeline.throwIO e
+        e -> MonadCatch.throwM e
 
   appendQueryBuffer q = do
     s <- modify \s@ClientState { queryBuffer } ->
